@@ -1,0 +1,57 @@
+.version-notifier {
+  &__body {
+    width: 250px;
+    min-height: 250px;
+    vertical-align: middle;
+    display: inline-flex;
+    border-radius: 10px;
+  }
+  &__wrapper {
+    width: 100%;
+    background: url('../static/img/updateConfirm.png') no-repeat;
+    background-size: 100% 100%;
+    padding: 55px 20px 25px 20px;
+    text-align: left;
+  }
+  &__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+  &__content {
+    margin-top: 60px;
+    width: 100%;
+  }
+  &__desc {
+    color: #1a1a1a;
+    font-size: 12px;
+    font-weight: 400;
+  }
+  &__btn {
+    height: 40px;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: center;
+    margin-top: 8px;
+    line-height: 40px;
+    cursor: pointer;
+    &--confirm {
+      color: #fff;
+      background-color: #617af7;
+      border-radius: 40px;
+      cursor: pointer;
+      &:hover {
+        background-color: #4f6ae9;
+      }
+    }
+    &--cancel {
+      color: #B0B0B0;
+      span {
+        cursor: pointer;
+        &:hover {
+          color: #617af7;
+        }
+      }
+    }
+  }
+}
