@@ -1,11 +1,3 @@
-/*
- * @Description: 事件监听器
- * @Author: 舌红
- * @Date: 2025-02-07 11:24:10
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 11:26:47
- */
-
 export const EventListener = {
   EVENT_LISTENERS: new Set(),
   addEventListenerWrapper(target, event, handler) {

@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2025-02-06 14:21:05
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 17:21:27
- */
 import { NetworkService } from './network-monitor'
 import { EventListener } from '../utils/event-listener'
 import { isSameOrigin } from '../utils/common'

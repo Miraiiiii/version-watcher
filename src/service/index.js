@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2024-01-11 15:39:38
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 10:12:43
- */
 const { existsSync, writeFileSync } = require('fs')
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)

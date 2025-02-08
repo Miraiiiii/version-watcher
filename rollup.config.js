@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2025-02-06 16:58:16
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 17:20:04
- */
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import babel from '@rollup/plugin-babel'

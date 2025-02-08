@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2025-02-07 17:05:58
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 17:11:28
- */
 module.exports = {
   root: true,
   env: {

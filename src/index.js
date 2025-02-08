@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2025-02-06 14:13:10
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 17:27:45
- */
 import './theme-chalk/index.scss'
 import VersionWatcher from './core/version-watcher'
 import VersionNotifier from './ui/version-notifier'

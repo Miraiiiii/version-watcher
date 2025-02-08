@@ -1,11 +1,3 @@
-/*
- * @Description: 公共方法
- * @Author: 舌红
- * @Date: 2025-02-07 16:24:52
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 16:25:22
- */
-
 /**
  * 判断传入的 URL 是否与当前页面同源
  * @param {String} urlStr 传入的 URL 字符串

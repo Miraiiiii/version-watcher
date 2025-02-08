@@ -1,10 +1,3 @@
-/*
- * @Description: 
- * @Author: 舌红
- * @Date: 2025-02-06 15:00:39
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-07 17:43:26
- */
 export default class VersionNotifier {
   constructor(options = {}) {
     this.injectStyle(options)

@@ -1,11 +1,3 @@
-/*
- * @Description: 网络状态监控
- * @Author: 舌红
- * @Date: 2025-02-06 11:24:30
- * @LastEditors: 舌红
- * @LastEditTime: 2025-02-06 16:36:09
- */
-
 export class NetworkService {
   static async fetchVersion(endpoint) {
     if (!this.checkOnlineStatus()) throw new Error('Network is offline')
