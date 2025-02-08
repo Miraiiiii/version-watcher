@@ -1,3 +1,5 @@
+import refreshBroadcast from '../utils/refresh-broadcast'
+
 export default class VersionNotifier {
   constructor(options = {}) {
     this.injectStyle(options)
@@ -43,6 +45,10 @@ export default class VersionNotifier {
     const confirm = alert.querySelector('#VersionNotifierConfirm')
     const cancel = alert.querySelector('#VersionNotifierCancel')
     confirm && confirm.addEventListener('click', () => {
+      // 当允许刷新同源页签且当前页面同源时，通知其它标签页刷新
+      if (event.refreshSameOrigin) {
+        refreshBroadcast.broadcast()
+      }
       window.location.reload()
     })
     cancel && cancel.addEventListener('click', () => {

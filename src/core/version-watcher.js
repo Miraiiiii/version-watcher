@@ -11,7 +11,6 @@ import { isSameOrigin } from '../utils/common'
  * @param {Boolean} options.isListenJSError 是否监听JS报错，默认为false
  * @param {String} options.content 弹窗内容
  * @param {Boolean} options.dangerouslyUseHTMLString 是否允许使用HTML字符串，默认为false
- * @param {Boolean} options.showTest 弹窗常显测试
  * @param {Boolean} options.refreshSameOrigin 是否刷新同源页面，默认为true
  * @returns {Void} 无返回值
  */

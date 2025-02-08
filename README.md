@@ -30,7 +30,7 @@ new VersionWatcher()
 
 // 自定义配置
 new VersionWatcher({
-  endpoint: '/dist/version.json',  // 版本信息接口
+  endpoint: '/dist/version.json',  // 版本信息文件路径
   interval: 5 * 60 * 1000,        // 检查间隔（默认5分钟）
   content: '发现新版本，请刷新页面',  // 自定义提示内容
   disabled: false,                // 是否禁用更新提示
@@ -93,7 +93,6 @@ export default {
 | isListenJSError | Boolean | false | 是否监听JS错误 |
 | content | String | '为了更好的版本体验请更新到最新版本' | 提示框内容 |
 | dangerouslyUseHTMLString | Boolean | false | 是否允许内容使用HTML |
-| showTest | Boolean | false | 是否显示测试弹窗 |
 | refreshSameOrigin | Boolean | true | 是否自动刷新同源页面 |
 
 ## 自定义更新提示
