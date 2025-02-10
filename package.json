@@ -6,9 +6,13 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "require": "./dist/index.js"
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
-    "./plugin": "./dist/service/index.js"
+    "./plugin": "./dist/service/index.js",
+    "./theme-chalk": "./dist/theme-chalk.css",
+    "./dist/theme-chalk.css": "./dist/theme-chalk.css",
+    "./assets/*": "./dist/static/*"
   },
   "files": [
     "dist",
@@ -26,6 +30,7 @@
   "devDependencies": {
     "@babel/core": "^7.26.7",
     "@babel/preset-env": "^7.26.7",
+    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-commonjs": "^23.0.7",
     "@rollup/plugin-eslint": "^9.0.5",

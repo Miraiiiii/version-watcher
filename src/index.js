@@ -21,7 +21,7 @@ refreshBroadcast.onRefresh(() => {
  * @returns {Void} 无返回值
  */
 
-export default {
+const VersionWatcher = {
   install(app, options) {
     const versionWatcher = new VersionWatcherWrapper(options)
     const versionNotifier = new VersionNotifier(options)
@@ -32,6 +32,8 @@ export default {
       isTip && versionNotifier.showUpdateNotification(event)
       console.log(`[VersionWatcher] New version available: ${event.newVersion}`)
     })
-
   }
 }
+
+export { VersionWatcher }
+export default VersionWatcher

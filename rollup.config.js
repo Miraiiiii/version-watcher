@@ -8,6 +8,7 @@ import path from 'path'
 import fs from 'fs'
 import eslint from '@rollup/plugin-eslint'
 import webWorkerLoader from 'rollup-plugin-web-worker-loader'
+import alias from '@rollup/plugin-alias'
 
 // 创建一个简单的插件来修改CSS中的图片路径
 function fixImagePaths() {
@@ -17,8 +18,9 @@ function fixImagePaths() {
       const cssFile = path.join(process.cwd(), 'dist/theme-chalk.css')
       if (fs.existsSync(cssFile)) {
         let cssContent = fs.readFileSync(cssFile, 'utf8')
-        // 修改图片路径
-        cssContent = cssContent.replace(/\.\.\/static\/img\//g, './static/img/')
+        // 修改图片路径为相对于 CSS 文件的路径
+        cssContent = cssContent.replace(/url\(['"]?@\/static\/img\//g, 'url("./static/img/')
+        cssContent = cssContent.replace(/png['"]?\)/g, 'png")')
         fs.writeFileSync(cssFile, cssContent)
       }
     }
@@ -32,13 +34,17 @@ export default [
     external: ['vue'],
     output: {
       dir: 'dist',
-      format: 'cjs',
-      exports: 'auto',
-      banner: '/* eslint-disable */',
-      chunkFileNames: '[name]-[hash].js',
-      entryFileNames: '[name].js'
+      format: 'esm',
+      exports: 'named',
+      preserveModules: true,
+      banner: '/* eslint-disable */'
     },
     plugins: [
+      alias({
+        entries: [
+          { find: '@', replacement: path.resolve(__dirname, 'src') }
+        ]
+      }),
       resolve({
         browser: true,
         preferBuiltins: false
@@ -90,10 +96,11 @@ export default [
   // 单独打包 service 插件（构建工具部分）
   {
     input: 'src/service/index.js',
-    external: ['vue'],
+    external: ['fs', 'util', 'child_process'],
     output: {
       dir: 'dist/service',
-      format: 'cjs'
+      format: 'cjs',
+      exports: 'auto'
     },
     plugins: [
       resolve(),

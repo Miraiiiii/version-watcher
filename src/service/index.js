@@ -62,6 +62,7 @@ class UpdateListenerPlugin {
     }
   }
 
+  // Webpack 插件实现
   apply(compiler) {
     compiler.hooks.afterEmit.tapAsync('UpdateListenerPlugin', async (stats, callback) => {
       const _that = this
@@ -69,10 +70,29 @@ class UpdateListenerPlugin {
         _that.setVersionInfo(info)
       })
       console.log('资源输出到目录完成 afterEmit', this.gitInfo)
-      console.log(stats.hash)
       callback()
     })
   }
+
+  // Vite 插件实现
+  vite() {
+    return {
+      name: 'vite-plugin-version-watcher',
+      async writeBundle() {
+        const info = await this.getGitInfo()
+        this.gitInfo = info
+        console.log('资源输出到目录完成 afterEmit', this.gitInfo)
+        this.setVersionInfo(info)
+      }
+    }
+  }
 }
 
+// 导出 Webpack 插件
 module.exports = UpdateListenerPlugin
+
+// 导出 Vite 插件工厂函数
+UpdateListenerPlugin.vite = function() {
+  const plugin = new UpdateListenerPlugin()
+  return plugin.vite()
+}

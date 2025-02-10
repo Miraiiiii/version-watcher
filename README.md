@@ -43,16 +43,42 @@ new VersionWatcher({
 
 在构建工具配置文件中使用插件，自动生成和更新版本信息：
 
-```javascript
-// vite.config.js / vue.config.js
-const { UpdateListenerPlugin } = require('version-watcher/plugin')
+#### Vue CLI (webpack)
 
-export default {
-  plugins: [
-    new UpdateListenerPlugin()
-  ]
+```javascript
+// vue.config.js
+const VersionWatcherPlugin = require('version-watcher/plugin')
+
+module.exports = {
+  configureWebpack: {
+    plugins: [
+      new VersionWatcherPlugin()
+    ]
+  }
 }
 ```
+
+#### Vite
+
+```javascript
+// vite.config.js
+import { defineConfig } from 'vite'
+import VersionWatcherPlugin from 'version-watcher/plugin/vite'
+
+export default defineConfig({
+  plugins: [
+    VersionWatcherPlugin.vite()
+  ],
+  // 本地开发时的配置
+  server: {
+    fs: {
+      strict: false // 允许访问工作区以外的文件，用于本地调试
+    }
+  }
+})
+```
+
+> **注意：** 在使用 Vite 进行本地开发时，需要将 `server.fs.strict` 设置为 `false`。这是因为 version-watcher 需要访问项目根目录之外的文件来检测版本更新。如果不设置这个选项，可能会遇到文件访问限制的错误。
 
 插件会在每次构建时：
 1. 自动获取最新的 Git 提交信息
