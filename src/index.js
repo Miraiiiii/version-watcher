@@ -1,5 +1,5 @@
 import './theme-chalk/index.scss'
-import VersionWatcher from './core/version-watcher'
+import VersionWatcherWrapper from './core/version-watcher-wrapper'
 import VersionNotifier from './ui/version-notifier'
 import refreshBroadcast from './utils/refresh-broadcast'
 
@@ -23,7 +23,7 @@ refreshBroadcast.onRefresh(() => {
 
 export default {
   install(app, options) {
-    const versionWatcher = new VersionWatcher(options)
+    const versionWatcher = new VersionWatcherWrapper(options)
     const versionNotifier = new VersionNotifier(options)
 
     !options.disabled && versionWatcher.initialize()

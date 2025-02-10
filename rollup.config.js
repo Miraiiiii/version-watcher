@@ -7,6 +7,7 @@ import copy from 'rollup-plugin-copy'
 import path from 'path'
 import fs from 'fs'
 import eslint from '@rollup/plugin-eslint'
+import webWorkerLoader from 'rollup-plugin-web-worker-loader'
 
 // 创建一个简单的插件来修改CSS中的图片路径
 function fixImagePaths() {
@@ -28,16 +29,24 @@ export default [
   // 打包 src/index.js，生成 CommonJS 版本
   {
     input: 'src/index.js',
+    external: ['vue'],
     output: {
-      file: 'dist/index.js',
+      dir: 'dist',
       format: 'cjs',
       exports: 'auto',
-      // 使用 /*! 开头的 banner 注释，告诉 ESLint 跳过整个文件的检查
-      banner: '/* eslint-disable */'
+      banner: '/* eslint-disable */',
+      chunkFileNames: '[name]-[hash].js',
+      entryFileNames: '[name].js'
     },
     plugins: [
-      resolve(),
+      resolve({
+        browser: true,
+        preferBuiltins: false
+      }),
       commonjs(),
+      webWorkerLoader({
+        targetPlatform: 'browser'
+      }),
       copy({
         targets: [
           { src: 'src/static/img/*', dest: 'dist/static/img' }
@@ -53,7 +62,14 @@ export default [
         babelHelpers: 'bundled',
         exclude: 'node_modules/**',
         include: 'src/**',
-        babelrc: true
+        babelrc: true,
+        presets: [
+          ['@babel/preset-env', {
+            targets: {
+              browsers: ['> 1%', 'last 2 versions', 'not dead']
+            }
+          }]
+        ]
       }),
       terser({
         format: {
@@ -74,8 +90,9 @@ export default [
   // 单独打包 service 插件（构建工具部分）
   {
     input: 'src/service/index.js',
+    external: ['vue'],
     output: {
-      file: 'dist/service/index.js',
+      dir: 'dist/service',
       format: 'cjs'
     },
     plugins: [

@@ -9,8 +9,8 @@ class RefreshBroadcast {
       // 为了后续移除监听器，保存引用
       this.storageListener = null
     } else {
-      this._mode = 'noop';
-      console.warn('当前浏览器不支持 BroadcastChannel 和 localStorage，刷新广播功能将无法使用');
+      this._mode = 'noop'
+      console.warn('当前浏览器不支持 BroadcastChannel 和 localStorage，刷新广播功能将无法使用')
     }
   }
 
@@ -21,9 +21,9 @@ class RefreshBroadcast {
     } else if (this._mode === 'localstorage') {
       try {
         // 写入 localStorage，利用 storage 事件通知其他标签页
-        localStorage.setItem(this.channelName, Date.now().toString());
+        localStorage.setItem(this.channelName, Date.now().toString())
       } catch (error) {
-        console.error('localStorage 广播消息失败:', error);
+        console.error('localStorage 广播消息失败:', error)
       }
     }
   }
