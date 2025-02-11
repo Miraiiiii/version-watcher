@@ -58,7 +58,8 @@ class UpdateListenerPlugin {
         console.error(error)
       }
     } else {
-      setTimeout(this.setVersionInfo, 1000)
+      const self = this
+      setTimeout(() => self.setVersionInfo(info), 1000)
     }
   }
 

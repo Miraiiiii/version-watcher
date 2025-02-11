@@ -2,6 +2,8 @@ import './theme-chalk/index.scss'
 import VersionWatcherWrapper from './core/version-watcher-wrapper'
 import VersionNotifier from './ui/version-notifier'
 import refreshBroadcast from './utils/refresh-broadcast'
+import 'core-js'
+import 'regenerator-runtime/runtime'
 
 // 监听广播刷新消息，收到消息后进行刷新处理
 refreshBroadcast.onRefresh(() => {

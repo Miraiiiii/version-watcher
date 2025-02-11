@@ -36,7 +36,9 @@ export default [
       dir: 'dist',
       format: 'esm',
       exports: 'named',
-      preserveModules: true,
+      preserveModules: false,
+      entryFileNames: '[name].js',
+      chunkFileNames: '[name]-[hash].js',
       banner: '/* eslint-disable */'
     },
     plugins: [
