@@ -77,13 +77,14 @@ class UpdateListenerPlugin {
 
   // Vite 插件实现
   vite() {
+    const self = this
     return {
       name: 'vite-plugin-version-watcher',
       async writeBundle() {
-        const info = await this.getGitInfo()
-        this.gitInfo = info
-        console.log('资源输出到目录完成 afterEmit', this.gitInfo)
-        this.setVersionInfo(info)
+        const info = await self.getGitInfo()
+        self.gitInfo = info
+        console.log('资源输出到目录完成 afterEmit', self.gitInfo)
+        self.setVersionInfo(info)
       }
     }
   }

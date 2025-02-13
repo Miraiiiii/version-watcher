@@ -1,6 +1,20 @@
 import VersionWorker from 'web-worker:./version-watcher.worker.js'
 import { EventListener } from '../utils/event-listener'
 import { isSameOrigin } from '../utils/common'
+import TabManager from '../utils/tab-manager'
+import versionBroadcast from '../utils/version-broadcast'
+
+// 防抖函数
+const debounce = (fn, wait) => {
+  let timer = null
+  return function (...args) {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+      timer = null
+    }, wait)
+  }
+}
 
 /**
  * 监听版本更新
@@ -12,11 +26,14 @@ import { isSameOrigin } from '../utils/common'
  * @param {String} options.content 弹窗内容
  * @param {Boolean} options.dangerouslyUseHTMLString 是否允许使用HTML字符串，默认为false
  * @param {Boolean} options.refreshSameOrigin 是否刷新同源页面，默认为true
+ * @param {Number} options.pageVisibleDebounceTime 页面可见性检查防抖时间，默认为10秒，单位为毫秒
+ * @param {Boolean} options.polling 是否启用轮询检查，默认为true。如果设为false，则只在页面可见性变化和JS错误时检查
  * @returns {Void} 无返回值
  */
-
 export default class VersionWatcherWrapper {
   constructor(options = {}) {
+    // 验证参数
+    this._validateOptions(options)
 
     // 默认配置及自定义配置合并
     this.options = {
@@ -25,38 +42,148 @@ export default class VersionWatcherWrapper {
       content: '为了更好的版本体验请更新到最新版本',
       disabled: false,
       isListenJSError: false,
+      pageVisibleDebounceTime: 10000,
+      refreshSameOrigin: true,
+      polling: true,
       ...options
     }
 
     // 用于存储版本更新回调
     this.callbacks = new Set()
+    
+    // 防抖后的页面可见性检查函数
+    this._debouncedVisibilityCheck = debounce(() => {
+      if (!document.hidden) {
+        this.checkNow()
+      }
+    }, this.options.pageVisibleDebounceTime)
 
     // 判断浏览器是否支持 Worker
     if (typeof Worker !== 'undefined') {
       this.mode = 'worker'
-
-      this.worker = new VersionWorker()
-      this._initWorker()
+      try {
+        this.worker = new VersionWorker()
+        this._initWorker()
+      } catch (error) {
+        this._handleError(error, 'Worker initialization')
+        this._fallbackToMainThread()
+      }
     } else {
-      this.fallbackWatcher = null
-      console.warn('当前浏览器不支持 Worker，使用主线程版本监控')
-      this.mode = 'fallback'
-      this._initFallback()
+      this._fallbackToMainThread()
     }
+
     if (this.worker || this.fallbackWatcher) {
-      EventListener.addEventListenerWrapper(document, 'visibilitychange', this.listenPageVisible.bind(this))
-      this.options.isListenJSError && EventListener.addEventListenerWrapper(window, 'error', this.listenJSError.bind(this))
+      this._bindEvents()
+    }
+
+    // 监听版本同步
+    this._listenVersionSync()
+
+    // 初始化页签管理器
+    this.tabManager = new TabManager()
+  }
+
+  // 获取同源页签数量
+  getTabCount() {
+    return this.tabManager.getTabCount()
+  }
+
+  // 获取所有同源页签ID
+  getTabIds() {
+    return this.tabManager.getTabIds()
+  }
+
+  // 验证配置参数
+  _validateOptions(options) {
+    if (options.interval && (typeof options.interval !== 'number' || options.interval < 1000)) {
+      throw new Error('interval 必须是大于等于1000的数字')
+    }
+    if (options.pageVisibleDebounceTime && (typeof options.pageVisibleDebounceTime !== 'number' || options.pageVisibleDebounceTime < 1000)) {
+      throw new Error('pageVisibleDebounceTime 必须是大于等于1000的数字')
+    }
+    if (options.endpoint && typeof options.endpoint !== 'string') {
+      throw new Error('endpoint 必须是字符串类型')
+    }
+    if (options.polling !== undefined && typeof options.polling !== 'boolean') {
+      throw new Error('polling 必须是布尔类型')
+    }
+  }
+
+  // 统一的错误处理方法
+  _handleError(error, source = '') {
+    const errorMessage = {
+      message: error.message,
+      stack: error.stack,
+      source,
+      timestamp: new Date().toISOString()
+    }
+    console.error('[VersionWatcher Error]', errorMessage)
+  }
+
+  // 切换到主线程模式
+  _fallbackToMainThread() {
+    // 先销毁 worker
+    if (this.worker) {
+      this.worker.terminate()
+      this.worker = null
+    }
+
+    this.mode = 'fallback'
+    this.fallbackWatcher = null
+    console.warn('当前浏览器不支持 Worker 或 Worker 初始化失败，使用主线程版本监控')
+    this._initFallback()
+  }
+
+  // 绑定事件
+  _bindEvents() {
+    this._visibilityChangeHandler = this.listenPageVisible.bind(this)
+    this._jsErrorHandler = this.listenJSError.bind(this)
+    
+    EventListener.addEventListenerWrapper(
+      document,
+      'visibilitychange',
+      this._visibilityChangeHandler
+    )
+    
+    if (this.options.isListenJSError) {
+      EventListener.addEventListenerWrapper(
+        window,
+        'error',
+        this._jsErrorHandler
+      )
+    }
+  }
+
+  // 解绑事件
+  _unbindEvents() {
+    if (this._visibilityChangeHandler) {
+      EventListener.removeEventListenerWrapper(
+        document,
+        'visibilitychange',
+        this._visibilityChangeHandler
+      )
+      this._visibilityChangeHandler = null
+    }
+    
+    if (this._jsErrorHandler) {
+      EventListener.removeEventListenerWrapper(
+        window,
+        'error',
+        this._jsErrorHandler
+      )
+      this._jsErrorHandler = null
     }
   }
 
   // Worker 模式下建立消息通信
   _initWorker() {
     if (!this.worker) return
+
     this.worker.onerror = (error) => {
-      console.error('[VersionWatcher] Worker error:', error)
-      this.mode = 'fallback'
-      this._initFallback()
+      this._handleError(error, 'Worker error')
+      this._fallbackToMainThread()
     }
+
     this.worker.onmessage = (event) => {
       const { type, data, message, error } = event.data
       switch (type) {
@@ -69,21 +196,12 @@ export default class VersionWatcherWrapper {
         case 'status':
           break
         case 'error':
-          console.error('[VersionWatcherWrapper Worker Error]', error)
+          this._handleError(error, 'Worker message error')
           break
         default:
           break
       }
     }
-  }
-
-  // 将 Worker 返回的数据转换为统一事件格式，并回调外部注册回调
-  _handleVersionChanged(data) {
-    const eventObj = {
-      newVersion: data.version,
-      ...this.options
-    }
-    this.callbacks.forEach((cb) => cb(eventObj, data.isTip))
   }
 
   // fallback 模式，动态加载主线程版本监听组件
@@ -98,8 +216,35 @@ export default class VersionWatcherWrapper {
         })
       })
       .catch((error) => {
-        console.error('加载主线程版本监控组件失败:', error)
+        this._handleError(error, 'Fallback initialization')
       })
+  }
+
+  // 将 Worker 返回的数据转换为统一事件格式，并回调外部注册回调
+  _handleVersionChanged(data) {
+    const eventObj = {
+      newVersion: data.newVersion,
+      ...this.options
+    }
+    // 如果有多个同源标签页，添加版本同步回调
+    if (this.getTabCount() > 1) {
+      eventObj.onVersionSync = () => {
+        console.log('[VersionWatcherWrapper] Syncing version:', data.newVersion)
+        this.syncVersion(data.newVersion)
+      }
+    }
+    this._handleVersionChange(eventObj, data.isTip)
+  }
+
+  _handleVersionChange(event, isTip) {
+    // 通知所有回调
+    for (const callback of this.callbacks) {
+      try {
+        callback(event, isTip)
+      } catch (error) {
+        console.error('[VersionWatcherWrapper] Callback execution failed:', error)
+      }
+    }
   }
 
   // 启动版本检测
@@ -123,21 +268,51 @@ export default class VersionWatcherWrapper {
     if (document.hidden) {
       this.stop()
     } else {
-      this.checkNow()
+      this._debouncedVisibilityCheck()
     }
   }
 
+  // 监听JS错误
   listenJSError(event) {
     if (event.target && event.target.nodeName === 'SCRIPT' && !this.options.disabled) {
       const scriptUrl = event.target.src || ''
       if (!scriptUrl) return
       if (isSameOrigin(scriptUrl) && event.message && event.message.includes('unexpected token')) {
         console.warn('可能由于构建版本差异导致的错误')
-        this._handleVersionChanged({
-          newVersion: Date.now(),
-          isTip: !this.options.disabled
-        })
+        this.checkNow()
       }
+    }
+  }
+
+  // 监听版本同步
+  _listenVersionSync() {
+    versionBroadcast.onVersionSync(version => {
+      console.log('[VersionWatcherWrapper] Received version sync:', version)
+      // 更新 worker 版本
+      if (this.worker) {
+        this.worker.postMessage({ type: 'syncVersion', data: version })
+      }
+      // 更新 fallback 版本
+      if (this.fallbackWatcher) {
+        this.fallbackWatcher.currentVersion = version
+        // 如果需要继续轮询，重新开始
+        if (this.fallbackWatcher.options.polling) {
+          this.fallbackWatcher.start()
+        }
+      }
+    })
+  }
+
+  // 同步版本到其他页签
+  syncVersion(version) {
+    console.log('[VersionWatcherWrapper] Broadcasting version:', version)
+    versionBroadcast.broadcast(version)
+  }
+
+  // 注册更新回调
+  onUpdate(callback) {
+    if (typeof callback === 'function') {
+      this.callbacks.add(callback)
     }
   }
 
@@ -150,23 +325,24 @@ export default class VersionWatcherWrapper {
     }
   }
 
-  // 注册版本更新回调
-  onUpdate(callback) {
-    this.callbacks.add(callback)
-    return () => {
-      this.callbacks.delete(callback)
-    }
-  }
-
-  // 销毁版本检测器，清理资源
+  // 销毁实例
   destroy() {
-    if (this.mode === 'worker' && this.worker) {
+    this.stop()
+    this._unbindEvents()
+    
+    if (this.worker) {
       this.worker.terminate()
       this.worker = null
-    } else if (this.mode === 'fallback' && this.fallbackWatcher) {
-      this.fallbackWatcher.stop()
+    }
+    
+    if (this.fallbackWatcher) {
+      this.fallbackWatcher.destroy && this.fallbackWatcher.destroy()
       this.fallbackWatcher = null
     }
+    
+    versionBroadcast.destroy()
+
     this.callbacks.clear()
+    this.tabManager.destroy()
   }
-} 
+}

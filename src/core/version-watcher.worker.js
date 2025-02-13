@@ -10,7 +10,8 @@ let options = {
   endpoint: '/dist/version.json',
   interval: 5 * 60 * 1000,
   disabled: false,
-  isListenJSError: false
+  isListenJSError: false,
+  polling: true
 }
 
 // 处理来自主线程的消息
@@ -26,7 +27,11 @@ self.onmessage = function(event) {
       stopChecking()
       break
     case 'checkNow':
-      startChecking()
+      checkVersion()
+      break
+    case 'syncVersion':
+      console.log('[Worker] Syncing version:', data)
+      currentVersion = data
       break
   }
 }
@@ -49,11 +54,13 @@ async function checkVersion() {
       self.postMessage({ 
         type: 'version-changed',
         data: {
-          version,
-          isTip,
-          options
+          newVersion: version,
+          currentVersion,
+          isTip
         }
       })
+      
+      // 更新当前版本
       currentVersion = version
 
       // 如果需要提示，停止检查
@@ -62,13 +69,7 @@ async function checkVersion() {
       }
     }
   } catch (error) {
-    self.postMessage({ 
-      type: 'error',
-      error: {
-        message: error.message,
-        stack: error.stack
-      }
-    })
+    console.error('[Worker] Check version failed:', error)
   }
 }
 
@@ -77,12 +78,15 @@ function startChecking() {
 
   // 立即执行一次检查
   checkVersion()
-  // 设置定时器
-  timer = setInterval(checkVersion, options.interval)
+  
+  // 只有在启用轮询的情况下才设置定时器
+  if (options.polling) {
+    timer = setInterval(() => checkVersion(), options.interval)
+  }
 
   self.postMessage({ 
     type: 'status',
-    data: { status: 'started' }
+    data: { status: 'started', polling: options.polling }
   })
 }
 

@@ -1,0 +1,90 @@
+.vw-confirm {
+  &-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  &-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+    max-width: 80%;
+    min-width: 300px;
+  }
+
+  &-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #1a1a1a;
+  }
+
+  &-message {
+    margin: 20px 0;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  &-button {
+    padding: 9px 15px;
+    font-size: 12px;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+    text-align: center;
+  }
+
+  &-primary {
+    @extend .vw-confirm-button;
+    border: 1px solid #617af7;
+    background: #617af7;
+    color: white;
+
+    &:hover {
+      background: #4f6ae9;
+      border-color: #4f6ae9;
+    }
+  }
+
+  &-secondary {
+    @extend .vw-confirm-button;
+    border: 1px solid #617af7;
+    background: white;
+    color: #617af7;
+
+    &:hover {
+      background: #f5f7ff;
+    }
+  }
+
+  &-cancel {
+    @extend .vw-confirm-button;
+    border: 1px solid #dcdfe6;
+    background: white;
+    color: #b0b0b0;
+
+    &:hover {
+      color: #617af7;
+      border-color: #617af7;
+      background-color: white;
+    }
+  }
+}

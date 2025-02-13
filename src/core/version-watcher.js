@@ -6,6 +6,7 @@ export default class VersionWatcher {
       endpoint: '/dist/version.json',
       interval: 5 * 60 * 1000,
       content: '为了更好的版本体验请更新到最新版本',
+      polling: true,
       ...options,
     }
 
@@ -17,12 +18,13 @@ export default class VersionWatcher {
   async initialize() {
     // 改为每次初始化时获取最新版本
     await this.checkVersion()
-    this.start()
+    if (this.options.polling) {
+      this.start()
+    }
   }
 
   async checkNow() {
     await this.checkVersion()
-    this.start()
   }
 
   async checkVersion() {
@@ -45,14 +47,27 @@ export default class VersionWatcher {
   }
 
   notifyListeners(newVersion, isTip) {
-    isTip && this.stop()
-    
-    const event = {
-      newVersion,
-      ...this.options
+    if (isTip) {
+      this.stop()
     }
 
-    this.listeners.forEach(callback => callback(event, isTip))
+    for (const listener of this.listeners) {
+      listener({
+        newVersion,
+        currentVersion: this.currentVersion,
+        isTip,
+        onVersionSync: (version) => {
+          // 更新当前版本
+          this.currentVersion = version
+          // 如果需要继续轮询，重新开始
+          if (this.options.polling) {
+            this.start()
+          }
+        }
+      })
+    }
+
+    // 更新当前版本
     this.currentVersion = newVersion
   }
 
@@ -67,9 +82,19 @@ export default class VersionWatcher {
       this.timer = null
     }
   }
-  
-  onUpdate(callback) {
-    this.listeners.add(callback)
-    return () => this.listeners.delete(callback)
+
+  addListener(callback) {
+    if (typeof callback === 'function') {
+      this.listeners.add(callback)
+    }
+  }
+
+  removeListener(callback) {
+    this.listeners.delete(callback)
+  }
+
+  destroy() {
+    this.stop()
+    this.listeners.clear()
   }
 }

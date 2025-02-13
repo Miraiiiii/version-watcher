@@ -35,9 +35,66 @@ new VersionWatcher({
   content: '发现新版本，请刷新页面',  // 自定义提示内容
   disabled: false,                // 是否禁用更新提示
   isListenJSError: false,        // 是否监听JS错误
-  refreshSameOrigin: true        // 是否自动刷新同源页面
+  refreshSameOrigin: true,       // 是否自动刷新同源页面
+  polling: true,                 // 是否启用轮询检查（默认为true）
+  pageVisibleDebounceTime: 10000 // 页面可见性检查防抖时间（默认10秒）
 })
 ```
+
+### Vue 应用中使用
+
+```javascript
+import { createApp } from 'vue'
+import VersionWatcher from 'version-watcher'
+import App from './App.vue'
+
+const app = createApp(App)
+
+// 获取版本监控实例
+const versionWatcher = app.use(VersionWatcher, {
+  endpoint: '/dist/version.json',  // 版本信息文件路径
+  interval: 5 * 60 * 1000,        // 检查间隔（默认5分钟）
+  content: '发现新版本，请刷新页面',  // 自定义提示内容
+  disabled: false,                // 是否禁用更新提示
+  isListenJSError: false,        // 是否监听JS错误
+  refreshSameOrigin: true,       // 是否自动刷新同源页面
+  polling: true,                 // 是否启用轮询检查（默认为true）
+  pageVisibleDebounceTime: 10000 // 页面可见性检查防抖时间（默认10秒）
+})
+
+app.mount('#app')
+
+// 手动检查更新
+versionWatcher.checkNow()
+
+// 不再需要时销毁实例
+versionWatcher.destroy()
+```
+
+### 非 Vue 应用中使用
+
+```javascript
+import { VersionWatcherInstance } from 'version-watcher'
+
+// 创建实例
+const versionWatcher = new VersionWatcherInstance({
+  polling: false,  // 禁用轮询检查
+  pageVisibleDebounceTime: 5000  // 设置页面可见性检查的防抖时间（毫秒）
+})
+
+// 手动检查更新
+versionWatcher.checkNow()
+
+// 不再需要时销毁实例
+versionWatcher.destroy()
+```
+
+### 实例方法
+
+| 方法名 | 说明 | 参数 |
+|--------|------|------|
+| checkNow | 立即执行一次版本检查 | - |
+| destroy | 销毁实例，清理资源 | - |
 
 ### 构建工具插件
 
@@ -120,6 +177,45 @@ export default defineConfig({
 | content | String | '为了更好的版本体验请更新到最新版本' | 提示框内容 |
 | dangerouslyUseHTMLString | Boolean | false | 是否允许内容使用HTML |
 | refreshSameOrigin | Boolean | true | 是否自动刷新同源页面 |
+| polling | Boolean | true | 是否启用轮询检查 |
+| pageVisibleDebounceTime | Number | 10000 | 页面可见性检查防抖时间（毫秒） |
+
+## 高级配置
+
+### 轮询控制
+
+version-watcher 提供了两种版本检查模式：
+
+1. **轮询模式**（默认）：
+   - 定期检查版本更新（默认每5分钟）
+   - 页面从隐藏变为可见时检查
+   - JS错误发生时检查（如果启用了错误监听）
+
+2. **手动模式**：
+   - 禁用定期轮询检查
+   - 仅在以下情况触发检查：
+     - 页面从隐藏变为可见时
+     - JS错误发生时（如果启用了错误监听）
+     - 手动调用 `checkNow()` 方法时
+
+通过设置 `polling: false` 可以禁用轮询检查：
+
+```javascript
+const watcher = new VersionWatcher({
+  polling: false,  // 禁用轮询检查
+  pageVisibleDebounceTime: 5000  // 设置页面可见性检查的防抖时间（毫秒）
+})
+```
+
+### 页面可见性检查
+
+为了优化性能，version-watcher 对页面可见性变化触发的版本检查添加了防抖处理：
+
+- 通过 `pageVisibleDebounceTime` 参数控制防抖时间（默认10秒）
+- 当页面从隐藏变为可见状态时，会在等待防抖时间后执行版本检查
+- 如果在防抖期间页面状态再次变化，会重新计时
+
+这个机制可以有效防止页面频繁切换时导致的大量检查请求。
 
 ## 自定义更新提示
 

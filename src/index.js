@@ -23,19 +23,47 @@ refreshBroadcast.onRefresh(() => {
  * @returns {Void} 无返回值
  */
 
-const VersionWatcher = {
-  install(app, options) {
-    const versionWatcher = new VersionWatcherWrapper(options)
-    const versionNotifier = new VersionNotifier(options)
+class VersionWatcherInstance {
+  constructor(options) {
+    this.watcher = new VersionWatcherWrapper(options)
+    this.notifier = new VersionNotifier(options)
 
-    !options.disabled && versionWatcher.initialize()
+    !options.disabled && this.watcher.initialize()
 
-    versionWatcher.onUpdate((event, isTip) => {
-      isTip && versionNotifier.showUpdateNotification(event)
+    this.watcher.onUpdate((event, isTip) => {
+      isTip && this.notifier.showUpdateNotification({
+        ...event,
+        tabCount: this.getTabCount()
+      })
       console.log(`[VersionWatcher] New version available: ${event.newVersion}`)
     })
   }
+
+  // 获取同源页签数量
+  getTabCount() {
+    return this.watcher.getTabCount()
+  }
+
+  // 获取所有同源页签ID
+  getTabIds() {
+    return this.watcher.getTabIds()
+  }
+
+  checkNow() {
+    this.watcher.checkNow()
+  }
+
+  destroy() {
+    this.watcher.destroy()
+  }
 }
 
-export { VersionWatcher }
+const VersionWatcher = {
+  install(app, options) {
+    const instance = new VersionWatcherInstance(options)
+    return instance
+  }
+}
+
+export { VersionWatcher, VersionWatcherInstance }
 export default VersionWatcher
