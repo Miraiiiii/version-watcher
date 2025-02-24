@@ -32,13 +32,15 @@ class VersionWatcherInstance {
 
     !options.disabled && this.watcher.initialize()
 
-    this.watcher.onUpdate((event, isTip) => {
-      isTip && this.notifier.showUpdateNotification({
-        ...event,
-        tabCount: this.getTabCount()
-      })
-      console.log(`[VersionWatcher] New version available: ${event.newVersion}`)
+    this.watcher.onUpdate(this.handleUpdate.bind(this))
+  }
+
+  handleUpdate(event, isTip) {
+    isTip && this.notifier.showUpdateNotification({
+      ...event,
+      tabCount: this.getTabCount()
     })
+    console.log(`[VersionWatcher] New version available: ${event.newVersion}`)
   }
 
   // 获取同源页签数量

@@ -10,10 +10,10 @@ class TabManager {
     // 在页面加载时广播自己的存在
     this._broadcastPresence()
     
-    // 在页面可见性变化时重新同步状态
+    // 在页面可见性变化时广播自己的存在
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        this._syncTabs()
+        this._broadcastPresence()
       }
     })
 
@@ -24,9 +24,6 @@ class TabManager {
 
     // 定期检查活跃状态
     this._startHeartbeat()
-
-    // 存储页签最后活跃时间
-    this.tabsLastSeen = new Map()
   }
 
   // 生成唯一的页签ID
@@ -51,17 +48,6 @@ class TabManager {
     })
   }
 
-  // 请求同步
-  _syncTabs() {
-    this.channel.postMessage({
-      type: 'sync_request',
-      tabId: this.tabId,
-      timestamp: Date.now()
-    })
-    // 清空当前列表，等待其他页签响应
-    this.tabs.clear()
-  }
-
   // 开始心跳检测
   _startHeartbeat() {
     this.heartbeatInterval = setInterval(() => {
@@ -72,6 +58,7 @@ class TabManager {
 
   // 清理不活跃的页签
   _cleanInactiveTabs() {
+    if (!this.tabsLastSeen) return
     const now = Date.now()
     for (const [tabId, lastSeen] of this.tabsLastSeen) {
       if (now - lastSeen > 10000) { // 10秒没有心跳就认为页签已关闭
@@ -91,12 +78,17 @@ class TabManager {
     }
 
     // 更新页签最后活跃时间
+    if (!this.tabsLastSeen) {
+      this.tabsLastSeen = new Map()
+    }
     this.tabsLastSeen.set(tabId, Date.now())
     
     switch (type) {
       case 'presence':
         // 收到其他页签的存在广播
-        this.tabs.add(tabId)
+        if (tabId !== this.tabId) {
+          this.tabs.add(tabId)
+        }
         break
       case 'leave':
         // 移除离开的页签
@@ -104,9 +96,7 @@ class TabManager {
         break
       case 'sync_request':
         // 收到同步请求，回应自己的存在
-        setTimeout(() => {
-          this._broadcastPresence()
-        }, Math.random() * 500) // 随机延迟，最大500ms
+        this._broadcastPresence()
         break
     }
   }
