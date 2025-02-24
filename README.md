@@ -37,7 +37,7 @@ new VersionWatcher({
   isListenJSError: false,        // 是否监听JS错误
   refreshSameOrigin: true,       // 是否自动刷新同源页面
   polling: true,                 // 是否启用轮询检查（默认为true）
-  pageVisibleDebounceTime: 10000 // 页面可见性检查防抖时间（默认10秒）
+  checkNowThrottleTime: 10000 // 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
 })
 ```
 
@@ -59,7 +59,7 @@ const versionWatcher = app.use(VersionWatcher, {
   isListenJSError: false,        // 是否监听JS错误
   refreshSameOrigin: true,       // 是否自动刷新同源页面
   polling: true,                 // 是否启用轮询检查（默认为true）
-  pageVisibleDebounceTime: 10000 // 页面可见性检查防抖时间（默认10秒）
+  checkNowThrottleTime: 10000 // 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
 })
 
 app.mount('#app')
@@ -79,7 +79,7 @@ import { VersionWatcherInstance } from 'version-watcher'
 // 创建实例
 const versionWatcher = new VersionWatcherInstance({
   polling: false,  // 禁用轮询检查
-  pageVisibleDebounceTime: 5000  // 设置页面可见性检查的防抖时间（毫秒）
+  checkNowThrottleTime: 5000  // 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
 })
 
 // 手动检查更新
@@ -178,7 +178,7 @@ export default defineConfig({
 | dangerouslyUseHTMLString | Boolean | false | 是否允许内容使用HTML |
 | refreshSameOrigin | Boolean | true | 是否自动刷新同源页面 |
 | polling | Boolean | true | 是否启用轮询检查 |
-| pageVisibleDebounceTime | Number | 10000 | 页面可见性检查防抖时间（毫秒） |
+| checkNowThrottleTime | Number | 10000 | 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查） |
 
 ## 高级配置
 
@@ -203,19 +203,9 @@ version-watcher 提供了两种版本检查模式：
 ```javascript
 const watcher = new VersionWatcher({
   polling: false,  // 禁用轮询检查
-  pageVisibleDebounceTime: 5000  // 设置页面可见性检查的防抖时间（毫秒）
+  checkNowThrottleTime: 5000  // 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
 })
 ```
-
-### 页面可见性检查
-
-为了优化性能，version-watcher 对页面可见性变化触发的版本检查添加了防抖处理：
-
-- 通过 `pageVisibleDebounceTime` 参数控制防抖时间（默认10秒）
-- 当页面从隐藏变为可见状态时，会在等待防抖时间后执行版本检查
-- 如果在防抖期间页面状态再次变化，会重新计时
-
-这个机制可以有效防止页面频繁切换时导致的大量检查请求。
 
 ## 自定义更新提示
 

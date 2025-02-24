@@ -4,15 +4,26 @@ import { isSameOrigin } from '../utils/common'
 import TabManager from '../utils/tab-manager'
 import versionBroadcast from '../utils/version-broadcast'
 
-// 防抖函数
-const debounce = (fn, wait) => {
+// 节流函数
+const throttle = (fn, wait) => {
   let timer = null
+  let previous = 0
+
   return function (...args) {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => {
+    const now = Date.now()
+    const remaining = wait - (now - previous)
+
+    timer && clearTimeout(timer)
+
+    if (remaining <= 0) {
+      previous = now
       fn.apply(this, args)
-      timer = null
-    }, wait)
+    } else {
+      timer = setTimeout(() => {
+        previous = Date.now()
+        fn.apply(this, args)
+      }, remaining)
+    }
   }
 }
 
@@ -26,7 +37,7 @@ const debounce = (fn, wait) => {
  * @param {String} options.content 弹窗内容
  * @param {Boolean} options.dangerouslyUseHTMLString 是否允许使用HTML字符串，默认为false
  * @param {Boolean} options.refreshSameOrigin 是否刷新同源页面，默认为true
- * @param {Number} options.pageVisibleDebounceTime 页面可见性检查防抖时间，默认为10秒，单位为毫秒
+ * @param {Number} options.checkNowThrottleTime 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
  * @param {Boolean} options.polling 是否启用轮询检查，默认为true。如果设为false，则只在页面可见性变化和JS错误时检查
  * @returns {Void} 无返回值
  */
@@ -42,7 +53,7 @@ export default class VersionWatcherWrapper {
       content: '为了更好的版本体验请更新到最新版本',
       disabled: false,
       isListenJSError: false,
-      pageVisibleDebounceTime: 10000,
+      checkNowThrottleTime: 10000,
       refreshSameOrigin: true,
       polling: true,
       ...options
@@ -50,13 +61,10 @@ export default class VersionWatcherWrapper {
 
     // 用于存储版本更新回调
     this.callbacks = new Set()
-    
-    // 防抖后的页面可见性检查函数
-    this._debouncedVisibilityCheck = debounce(() => {
-      if (!document.hidden) {
-        this.checkNow()
-      }
-    }, this.options.pageVisibleDebounceTime)
+
+    this._throttleCheckNow = throttle(() => {
+      this.checkNow()
+    }, this.options.checkNowThrottleTime)
 
     // 判断浏览器是否支持 Worker
     if (typeof Worker !== 'undefined') {
@@ -79,8 +87,10 @@ export default class VersionWatcherWrapper {
     // 监听版本同步
     this._listenVersionSync()
 
-    // 初始化页签管理器
-    this.tabManager = new TabManager()
+    if (!this.options.disabled) {
+      // 初始化页签管理器
+      this.tabManager = new TabManager()
+    }
   }
 
   // 获取同源页签数量
@@ -98,8 +108,8 @@ export default class VersionWatcherWrapper {
     if (options.interval && (typeof options.interval !== 'number' || options.interval < 1000)) {
       throw new Error('interval 必须是大于等于1000的数字')
     }
-    if (options.pageVisibleDebounceTime && (typeof options.pageVisibleDebounceTime !== 'number' || options.pageVisibleDebounceTime < 1000)) {
-      throw new Error('pageVisibleDebounceTime 必须是大于等于1000的数字')
+    if (options.checkNowThrottleTime && (typeof options.checkNowThrottleTime !== 'number' || options.checkNowThrottleTime < 1000)) {
+      throw new Error('checkNowThrottleTime 必须是大于等于1000的数字')
     }
     if (options.endpoint && typeof options.endpoint !== 'string') {
       throw new Error('endpoint 必须是字符串类型')
@@ -268,7 +278,7 @@ export default class VersionWatcherWrapper {
     if (document.hidden) {
       this.stop()
     } else {
-      this._debouncedVisibilityCheck()
+      this._throttleCheckNow()
     }
   }
 
@@ -277,9 +287,9 @@ export default class VersionWatcherWrapper {
     if (event.target && event.target.nodeName === 'SCRIPT' && !this.options.disabled) {
       const scriptUrl = event.target.src || ''
       if (!scriptUrl) return
-      if (isSameOrigin(scriptUrl) && event.message && event.message.includes('unexpected token')) {
+      if (isSameOrigin(scriptUrl) && event.message) {
         console.warn('可能由于构建版本差异导致的错误')
-        this.checkNow()
+        this._throttleCheckNow()
       }
     }
   }

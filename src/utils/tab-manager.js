@@ -24,6 +24,9 @@ class TabManager {
 
     // 定期检查活跃状态
     this._startHeartbeat()
+
+    // 存储页签最后活跃时间
+    this.tabsLastSeen = new Map()
   }
 
   // 生成唯一的页签ID
@@ -88,9 +91,6 @@ class TabManager {
     }
 
     // 更新页签最后活跃时间
-    if (!this.tabsLastSeen) {
-      this.tabsLastSeen = new Map()
-    }
     this.tabsLastSeen.set(tabId, Date.now())
     
     switch (type) {

@@ -20,6 +20,8 @@ refreshBroadcast.onRefresh(() => {
  * @param {String} options.content 弹窗内容
  * @param {Boolean} options.dangerouslyUseHTMLString 是否允许使用HTML字符串，默认为false
  * @param {Boolean} options.refreshSameOrigin 是否刷新同源页面，默认为true
+ * @param {Number} options.checkNowThrottleTime 版本立即检查节流时间，默认为10秒，单位为毫秒（一般用在页面切换时，避免频繁检查）
+ * @param {Boolean} options.polling 是否启用轮询检查，默认为true。如果设为false，则只在页面可见性变化和JS错误时检查
  * @returns {Void} 无返回值
  */
 
