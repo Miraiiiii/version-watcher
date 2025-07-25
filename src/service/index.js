@@ -30,7 +30,7 @@ class UpdateListenerPlugin {
       this.getChildProcess('git rev-parse HEAD'),
       this.getChildProcess('git show -s --format=%cd'),
       this.getChildProcess('git show -s --format=%cn'),
-      this.getChildProcess('git log --no-merges --grep="^Revert" --invert-grep -1 --pretty=format:"%s"')
+      this.getChildProcess('git log --no-merges -1 --pretty=format:"%s"')
     // eslint-disable-next-line no-unused-vars
     ]).then(([branchName, version, date, name, message]) => {
       const reg = /--no-tip/

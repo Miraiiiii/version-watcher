@@ -117,6 +117,17 @@ export default class VersionWatcherWrapper {
     if (options.polling !== undefined && typeof options.polling !== 'boolean') {
       throw new Error('polling 必须是布尔类型')
     }
+    
+    // 添加边界处理
+    if (options.interval) {
+      // 限制最小值为1秒，确保不超过JS安全整数范围
+      options.interval = Math.max(1000, Math.min(options.interval, Number.MAX_SAFE_INTEGER))
+    }
+    
+    if (options.checkNowThrottleTime) {
+      // 限制最小值为1秒，确保不超过JS安全整数范围
+      options.checkNowThrottleTime = Math.max(1000, Math.min(options.checkNowThrottleTime, Number.MAX_SAFE_INTEGER))
+    }
   }
 
   // 统一的错误处理方法

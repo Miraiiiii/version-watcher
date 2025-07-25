@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { NetworkService } from './network-monitor'
+import { createInterval } from '../utils/common'
 
 // 立即发送初始化消息
 self.postMessage({ type: 'init', message: 'Worker initialized successfully!' })
@@ -81,7 +82,7 @@ function startChecking() {
   
   // 只有在启用轮询的情况下才设置定时器
   if (options.polling) {
-    timer = setInterval(() => checkVersion(), options.interval)
+    timer = createInterval(() => checkVersion(), options.interval)
   }
 
   self.postMessage({ 
@@ -92,7 +93,7 @@ function startChecking() {
 
 function stopChecking() {
   if (timer) {
-    clearInterval(timer)
+    timer.stop()
     timer = null
       
     self.postMessage({ 

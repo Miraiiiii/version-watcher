@@ -1,4 +1,5 @@
 import { NetworkService } from './network-monitor'
+import { createInterval } from '../utils/common'
 
 export default class VersionWatcher {
   constructor(options = {}) {
@@ -73,12 +74,12 @@ export default class VersionWatcher {
 
   start() {
     this.stop()
-    this.timer = setInterval(() => this.checkVersion(), this.options.interval)
+    this.timer = createInterval(() => this.checkVersion(), this.options.interval)
   }
 
   stop() {
     if (this.timer) {
-      clearInterval(this.timer)
+      this.timer.stop()
       this.timer = null
     }
   }

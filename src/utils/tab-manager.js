@@ -1,3 +1,5 @@
+import { createInterval } from './common'
+
 class TabManager {
   constructor(channelName = 'version-watcher-tabs') {
     this.channel = new BroadcastChannel(channelName)
@@ -50,7 +52,7 @@ class TabManager {
 
   // 开始心跳检测
   _startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
+    this.heartbeatInterval = createInterval(() => {
       this._broadcastPresence()
       this._cleanInactiveTabs()
     }, 5000) // 每5秒发送一次心跳
@@ -115,7 +117,7 @@ class TabManager {
   // 销毁实例
   destroy() {
     if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval.stop()
     }
     this._broadcastLeave()
     this.channel.close()
