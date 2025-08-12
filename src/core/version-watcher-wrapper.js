@@ -88,19 +88,24 @@ export default class VersionWatcherWrapper {
     this._listenVersionSync()
 
     if (!this.options.disabled) {
-      // 初始化页签管理器
-      this.tabManager = new TabManager()
+      // 初始化页签管理器，并允许透传心跳与 TTL
+      const tabHeartbeatInterval = this.options.tabHeartbeatInterval || 5000
+      const tabInactiveTTL = this.options.tabInactiveTTL
+      this.tabManager = new TabManager('version-watcher-tabs', {
+        heartbeatInterval: tabHeartbeatInterval,
+        inactiveTTL: tabInactiveTTL,
+      })
     }
   }
 
   // 获取同源页签数量
   getTabCount() {
-    return this.tabManager.getTabCount()
+    return this.tabManager ? this.tabManager.getTabCount() : 1
   }
 
   // 获取所有同源页签ID
   getTabIds() {
-    return this.tabManager.getTabIds()
+    return this.tabManager ? this.tabManager.getTabIds() : []
   }
 
   // 验证配置参数
@@ -247,12 +252,9 @@ export default class VersionWatcherWrapper {
       newVersion: data.newVersion,
       ...this.options
     }
-    // 如果有多个同源标签页，添加版本同步回调
-    if (this.getTabCount() > 1) {
-      eventObj.onVersionSync = () => {
-        console.log('[VersionWatcherWrapper] Syncing version:', data.newVersion)
-        this.syncVersion(data.newVersion)
-      }
+    eventObj.onVersionSync = () => {
+      console.log('[VersionWatcherWrapper] Syncing version:', data.newVersion)
+      this.syncVersion(data.newVersion)
     }
     this._handleVersionChange(eventObj, data.isTip)
   }
@@ -364,6 +366,9 @@ export default class VersionWatcherWrapper {
     versionBroadcast.destroy()
 
     this.callbacks.clear()
-    this.tabManager.destroy()
+    if (this.tabManager) {
+      this.tabManager.destroy()
+      this.tabManager = null
+    }
   }
 }
