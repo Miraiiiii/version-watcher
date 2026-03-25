@@ -1,137 +1,113 @@
 /* eslint-disable no-restricted-globals */
 import { NetworkService } from './network-monitor'
-import { createInterval } from '../utils/common'
+import EndpointContext from './endpoint-context'
+import { MESSAGE_TYPES, createRuntimeMessage } from './runtime-protocol'
 
-// 立即发送初始化消息
-self.postMessage({ type: 'init', message: 'Worker initialized successfully!' })
+const scope = typeof self !== 'undefined' ? self : typeof global !== 'undefined' ? global : {}
+let clientId = null
+let endpoint = null
+let context = null
 
-let timer = null
-let currentVersion = null
-let options = {
-  endpoint: '/dist/version.json',
-  interval: 5 * 60 * 1000,
-  disabled: false,
-  isListenJSError: false,
-  polling: true
+function normalizeEndpoint(rawEndpoint) {
+  return new URL(rawEndpoint, scope.location.href).toString()
 }
 
-// 处理来自主线程的消息
-self.onmessage = function(event) {
-  const { type, data } = event.data
-
-  switch (type) {
-    case 'start':
-      options = { ...options, ...data }
-      startChecking()
-      break
-    case 'stop':
-      stopChecking()
-      break
-    case 'checkNow':
-      checkVersion()
-      break
-    case 'syncVersion':
-      console.log('[Worker] Syncing version:', data)
-      currentVersion = data
-      break
-  }
+function postMessage(message) {
+  scope.postMessage({
+    clientId,
+    ...message,
+  })
 }
 
 async function checkVersion() {
-  try {
-    const baseUrl = self.location.origin
-    const url = new URL(options.endpoint, baseUrl)
-    const response = await NetworkService.fetchVersion(url)
-    const { version, isTip } = response
+  if (!context) return
 
-    // 首次获取时设置当前版本
-    if (!currentVersion) {
-      currentVersion = version
+  try {
+    const response = await NetworkService.fetchVersion(endpoint)
+    const { version, isTip } = response
+    const previousVersion = context.getCurrentVersion()
+
+    if (!previousVersion) {
+      context.syncVersion(version)
       return
     }
 
-    if (version !== currentVersion) {
-      // 通知主线程版本变化
-      self.postMessage({ 
-        type: 'version-changed',
+    if (version !== previousVersion) {
+      context.syncVersion(version)
+      postMessage(createRuntimeMessage(MESSAGE_TYPES.VERSION_CHANGED, {
         data: {
           newVersion: version,
-          currentVersion,
-          isTip
-        }
-      })
-      
-      // 更新当前版本
-      currentVersion = version
+          currentVersion: previousVersion,
+          isTip,
+        },
+      }))
 
-      // 如果需要提示，停止检查
       if (isTip) {
-        stopChecking()
+        context.stopTimer()
       }
     }
   } catch (error) {
-    console.error('[Worker] Check version failed:', error)
+    postMessage(createRuntimeMessage(MESSAGE_TYPES.ERROR, {
+      error: {
+        message: error.message,
+        stack: error.stack || '',
+      },
+    }))
   }
 }
 
-function startChecking() {
-  stopChecking()
+scope.onmessage = function onmessage(event) {
+  const message = event.data || {}
+  const { type, data = {} } = message
 
-  // 立即执行一次检查
-  checkVersion()
-  
-  // 只有在启用轮询的情况下才设置定时器
-  if (options.polling) {
-    timer = createInterval(() => checkVersion(), options.interval)
+  switch (type) {
+    case MESSAGE_TYPES.REGISTER:
+      clientId = message.clientId
+      endpoint = normalizeEndpoint(data.endpoint)
+      context = new EndpointContext(endpoint)
+      context.upsertSubscriber(clientId, data)
+      checkVersion()
+      context.reconcileTimer(checkVersion)
+      postMessage(createRuntimeMessage(MESSAGE_TYPES.STATUS, {
+        data: {
+          status: 'registered',
+          mode: 'worker',
+        },
+      }))
+      break
+    case MESSAGE_TYPES.UNREGISTER:
+      if (context) {
+        context.destroy()
+      }
+      context = null
+      endpoint = null
+      clientId = null
+      break
+    case MESSAGE_TYPES.VISIBILITY_CHANGE:
+      if (!context || !clientId) return
+      context.setSubscriberVisibility(clientId, data.visible)
+      context.reconcileTimer(checkVersion)
+      break
+    case MESSAGE_TYPES.CHECK_NOW:
+      checkVersion()
+      break
+    case MESSAGE_TYPES.SYNC_VERSION:
+      if (!context) return
+      context.syncVersion(data.version)
+      context.reconcileTimer(checkVersion)
+      break
+    default:
+      break
   }
-
-  self.postMessage({ 
-    type: 'status',
-    data: { status: 'started', polling: options.polling }
-  })
 }
 
-function stopChecking() {
-  if (timer) {
-    timer.stop()
-    timer = null
-      
-    self.postMessage({ 
-      type: 'status',
-      data: { status: 'stopped' }
-    })
-  }
-}
-
-// 修改错误处理
-self.onerror = function(event) {
-  self.postMessage({ 
-    type: 'error',
+scope.onerror = function onerror(errorEvent) {
+  postMessage(createRuntimeMessage(MESSAGE_TYPES.ERROR, {
     error: {
-      message: event.message || '未知错误',
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-      stack: event.error && event.error.stack ? event.error.stack : ''
-    }
-  })
-    
-  // 防止错误继续传播
-  event.preventDefault()
-}
+      message: errorEvent.message || 'Unknown worker error',
+      stack: errorEvent.error && errorEvent.error.stack ? errorEvent.error.stack : '',
+    },
+  }))
 
-// 修改 Promise 错误处理
-self.onunhandledrejection = function(event) {
-  const error = event.reason
-  self.postMessage({ 
-    type: 'error',
-    error: {
-      message: error.message || '未处理的 Promise 错误',
-      stack: error.stack || '',
-      name: error.name
-    }
-  })
-  
-  // 防止错误继续传播
-  event.preventDefault()
+  errorEvent.preventDefault()
 }

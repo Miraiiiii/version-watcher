@@ -1,101 +1,103 @@
-import { NetworkService } from './network-monitor'
-import { createInterval } from '../utils/common'
+import { NetworkService } from "./network-monitor";
+import { createInterval } from "../utils/common";
+import { RUNTIME_MODES } from "./runtime-protocol";
 
 export default class VersionWatcher {
   constructor(options = {}) {
     this.options = {
-      endpoint: '/dist/version.json',
+      endpoint: "/dist/version.json",
       interval: 5 * 60 * 1000,
-      content: '为了更好的版本体验请更新到最新版本',
+      content: "为了更好的版本体验请更新到最新版本",
       polling: true,
       ...options,
-    }
+    };
 
-    this.currentVersion = null
-    this.timer = null
-    this.listeners = new Set()
+    this.currentVersion = null;
+    this.timer = null;
+    this.listeners = new Set();
+  }
+
+  getMode() {
+    return RUNTIME_MODES.FALLBACK;
   }
 
   async initialize() {
-    // 改为每次初始化时获取最新版本
-    await this.checkVersion()
+    await this.checkVersion();
     if (this.options.polling) {
-      this.start()
+      this.start();
     }
   }
 
   async checkNow() {
-    await this.checkVersion()
+    await this.checkVersion();
   }
 
   async checkVersion() {
     try {
-      const response = await NetworkService.fetchVersion(this.options.endpoint)
-      const { version, isTip } = response
+      const response = await NetworkService.fetchVersion(this.options.endpoint);
+      const { version, isTip } = response;
 
-      // 首次获取时设置当前版本
       if (!this.currentVersion) {
-        this.currentVersion = version
-        return
+        this.currentVersion = version;
+        return;
       }
 
       if (version !== this.currentVersion) {
-        this.notifyListeners(version, isTip)
+        this.notifyListeners(version, isTip);
       }
     } catch (error) {
-      console.error('[VersionWatcher] Check failed:', error)
+      console.error("[VersionWatcher] Check failed:", error);
     }
   }
 
   notifyListeners(newVersion, isTip) {
     if (isTip) {
-      this.stop()
+      this.stop();
     }
 
     for (const listener of this.listeners) {
-      listener({
-        newVersion,
-        currentVersion: this.currentVersion,
+      listener(
+        {
+          newVersion,
+          currentVersion: this.currentVersion,
+          isTip,
+          onVersionSync: (version) => {
+            this.currentVersion = version;
+            if (this.options.polling) {
+              this.start();
+            }
+          },
+        },
         isTip,
-        onVersionSync: (version) => {
-          // 更新当前版本
-          this.currentVersion = version
-          // 如果需要继续轮询，重新开始
-          if (this.options.polling) {
-            this.start()
-          }
-        }
-      })
+      );
     }
 
-    // 更新当前版本
-    this.currentVersion = newVersion
+    this.currentVersion = newVersion;
+  }
+
+  onUpdate(callback) {
+    if (typeof callback === "function") {
+      this.listeners.add(callback);
+    }
   }
 
   start() {
-    this.stop()
-    this.timer = createInterval(() => this.checkVersion(), this.options.interval)
+    this.stop();
+    this.timer = createInterval(
+      () => this.checkVersion(),
+      this.options.interval,
+    ).start();
   }
 
   stop() {
     if (this.timer) {
-      this.timer.stop()
-      this.timer = null
+      this.timer.stop();
+      this.timer = null;
     }
-  }
-
-  addListener(callback) {
-    if (typeof callback === 'function') {
-      this.listeners.add(callback)
-    }
-  }
-
-  removeListener(callback) {
-    this.listeners.delete(callback)
   }
 
   destroy() {
-    this.stop()
-    this.listeners.clear()
+    this.stop();
+    this.listeners.clear();
   }
 }
