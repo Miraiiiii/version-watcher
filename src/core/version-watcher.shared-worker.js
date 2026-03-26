@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-globals */
+﻿/* eslint-disable no-restricted-globals */
 import { NetworkService } from './network-monitor'
 import EndpointContext from './endpoint-context'
 import { MESSAGE_TYPES, createRuntimeMessage } from './runtime-protocol'
@@ -67,7 +67,7 @@ async function checkContext(endpoint) {
       }
 
       if (isTip) {
-        context.stopTimer()
+        context.pausePolling()
       }
     }
   } catch (error) {

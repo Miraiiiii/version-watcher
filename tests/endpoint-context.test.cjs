@@ -1,4 +1,4 @@
-const assert = require('assert');
+﻿const assert = require('assert');
 const { loadModule } = require('./helpers/load-module.cjs');
 
 async function run() {
@@ -34,11 +34,28 @@ async function run() {
   context.setSubscriberVisibility('b', true);
   assert.strictEqual(context.getEffectiveInterval(), 3000);
 
+  let resumedChecks = 0;
+  context.pausePolling();
+  context.reconcileTimer(() => {
+    resumedChecks += 1;
+  });
+  assert.strictEqual(context.getEffectiveInterval(), null);
+  assert.strictEqual(context.hasActivePollingSubscribers(), false);
+  assert.strictEqual(context.timer, null);
+  assert.strictEqual(resumedChecks, 0);
+
+  context.syncVersion('2.0.0');
+  context.reconcileTimer(() => {
+    resumedChecks += 1;
+  });
+  assert.strictEqual(context.getEffectiveInterval(), 3000);
+
   context.removeSubscriber('a');
   context.removeSubscriber('b');
   context.removeSubscriber('c');
 
   assert.strictEqual(context.hasSubscribers(), false);
+  context.destroy();
 }
 
 module.exports = run;

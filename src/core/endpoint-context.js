@@ -1,4 +1,4 @@
-import { createInterval } from '../utils/common'
+﻿import { createInterval } from '../utils/common'
 
 function normalizeSubscriberConfig(config = {}) {
   return {
@@ -15,6 +15,7 @@ export default class EndpointContext {
     this.subscribers = new Map()
     this.timer = null
     this.timerInterval = null
+    this.isPaused = false
     this.createInterval = options.createInterval || createInterval
   }
 
@@ -45,6 +46,10 @@ export default class EndpointContext {
   }
 
   getEffectiveInterval() {
+    if (this.isPaused) {
+      return null
+    }
+
     const intervals = []
 
     for (const subscriber of this.subscribers.values()) {
@@ -65,6 +70,12 @@ export default class EndpointContext {
 
   syncVersion(version) {
     this.currentVersion = version
+    this.isPaused = false
+  }
+
+  pausePolling() {
+    this.isPaused = true
+    this.stopTimer()
   }
 
   reconcileTimer(runCheck) {

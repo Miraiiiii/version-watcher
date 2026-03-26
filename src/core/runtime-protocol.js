@@ -21,3 +21,18 @@ export function createRuntimeMessage(type, payload = {}) {
     ...payload,
   }
 }
+
+export function normalizeRuntimeMessage(messageOrEvent) {
+  if (
+    messageOrEvent
+    && typeof messageOrEvent === 'object'
+    && 'data' in messageOrEvent
+    && messageOrEvent.data
+    && typeof messageOrEvent.data === 'object'
+    && 'type' in messageOrEvent.data
+  ) {
+    return messageOrEvent.data
+  }
+
+  return messageOrEvent || {}
+}

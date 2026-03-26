@@ -1,56 +1,83 @@
-.vw-version-notifier {
+﻿.vw-version-notifier {
   &__body {
-    width: 250px;
-    min-height: 250px;
+    width: 320px;
+    min-height: 280px;
     vertical-align: middle;
     display: inline-flex;
-    border-radius: 10px;
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
   }
+
   &__wrapper {
     width: 100%;
-    background: url('@/static/img/updateConfirm.png') no-repeat;
-    background-size: 100% 100%;
-    padding: 55px 20px 25px 20px;
+    background: linear-gradient(180deg, #6b7cff 0%, #eef2ff 46%, #ffffff 100%);
+    padding: 28px 24px 24px;
     text-align: left;
+    position: relative;
   }
+
+  &__wrapper::before {
+    content: '';
+    position: absolute;
+    top: -48px;
+    right: -36px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.24);
+  }
+
   &__title {
-    font-size: 20px;
-    font-weight: 600;
+    position: relative;
+    font-size: 28px;
+    font-weight: 700;
     color: #fff;
+    line-height: 1.2;
   }
+
   &__content {
-    margin-top: 60px;
+    margin-top: 96px;
     width: 100%;
   }
+
   &__desc {
-    color: #1a1a1a;
-    font-size: 12px;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 1.6;
     font-weight: 400;
   }
+
+  &__footer {
+    margin-top: 20px;
+  }
+
   &__btn {
-    height: 40px;
-    font-size: 14px;
-    font-weight: 400;
+    height: 44px;
+    font-size: 15px;
+    font-weight: 500;
     text-align: center;
-    margin-top: 8px;
-    line-height: 40px;
+    margin-top: 10px;
+    line-height: 44px;
     cursor: pointer;
+    transition: all 0.2s ease;
+
     &--confirm {
       color: #fff;
-      background-color: #617af7;
-      border-radius: 40px;
-      cursor: pointer;
+      background: linear-gradient(135deg, #617af7 0%, #4f6ae9 100%);
+      border-radius: 999px;
+
       &:hover {
-        background-color: #4f6ae9;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px rgba(97, 122, 247, 0.28);
       }
     }
+
     &--cancel {
-      color: #B0B0B0;
-      span {
-        cursor: pointer;
-        &:hover {
-          color: #617af7;
-        }
+      color: #6b7280;
+
+      &:hover {
+        color: #4255d4;
       }
     }
   }
