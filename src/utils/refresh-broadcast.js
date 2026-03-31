@@ -1,4 +1,4 @@
-class RefreshBroadcast {
+export class RefreshBroadcast {
   constructor(channelName = 'refresh-all-tabs') {
     if ('BroadcastChannel' in window) {
       this._mode = 'broadcastchannel'
@@ -6,7 +6,6 @@ class RefreshBroadcast {
     } else if (window.localStorage) {
       this._mode = 'localstorage'
       this.channelName = channelName
-      // 为了后续移除监听器，保存引用
       this.storageListener = null
     } else {
       this._mode = 'noop'
@@ -14,13 +13,11 @@ class RefreshBroadcast {
     }
   }
 
-  // 发送刷新消息
   broadcast() {
     if (this._mode === 'broadcastchannel') {
       this.channel.postMessage('refresh')
     } else if (this._mode === 'localstorage') {
       try {
-        // 写入 localStorage，利用 storage 事件通知其他标签页
         localStorage.setItem(this.channelName, Date.now().toString())
       } catch (error) {
         console.error('localStorage 广播消息失败:', error)
@@ -28,14 +25,14 @@ class RefreshBroadcast {
     }
   }
 
-  // 监听刷新消息
   onRefresh(callback) {
     if (this._mode === 'broadcastchannel') {
-      this.channel.addEventListener('message', (event) => {
+      this.messageListener = (event) => {
         if (event.data === 'refresh') {
           callback && callback()
         }
-      })
+      }
+      this.channel.addEventListener('message', this.messageListener)
     } else if (this._mode === 'localstorage') {
       this.storageListener = (event) => {
         this.handleStorageEvent(event, callback)
@@ -50,8 +47,12 @@ class RefreshBroadcast {
     }
   }
 
-  close() {
+  destroy() {
     if (this._mode === 'broadcastchannel') {
+      if (this.messageListener) {
+        this.channel.removeEventListener('message', this.messageListener)
+        this.messageListener = null
+      }
       this.channel.close()
     } else if (this._mode === 'localstorage' && this.storageListener) {
       window.removeEventListener('storage', this.storageListener)
@@ -60,6 +61,6 @@ class RefreshBroadcast {
   }
 }
 
-
-
-export default new RefreshBroadcast()
+export function createRefreshBroadcast(channelName) {
+  return new RefreshBroadcast(channelName)
+}

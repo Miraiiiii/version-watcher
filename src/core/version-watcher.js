@@ -1,5 +1,6 @@
 import { NetworkService } from './network-monitor'
 import { createInterval } from '../utils/common'
+import { RUNTIME_MODES } from './runtime-protocol'
 
 export default class VersionWatcher {
   constructor(options = {}) {
@@ -16,8 +17,11 @@ export default class VersionWatcher {
     this.listeners = new Set()
   }
 
+  getMode() {
+    return RUNTIME_MODES.FALLBACK
+  }
+
   async initialize() {
-    // 改为每次初始化时获取最新版本
     await this.checkVersion()
     if (this.options.polling) {
       this.start()
@@ -33,7 +37,6 @@ export default class VersionWatcher {
       const response = await NetworkService.fetchVersion(this.options.endpoint)
       const { version, isTip } = response
 
-      // 首次获取时设置当前版本
       if (!this.currentVersion) {
         this.currentVersion = version
         return
@@ -58,23 +61,26 @@ export default class VersionWatcher {
         currentVersion: this.currentVersion,
         isTip,
         onVersionSync: (version) => {
-          // 更新当前版本
           this.currentVersion = version
-          // 如果需要继续轮询，重新开始
           if (this.options.polling) {
             this.start()
           }
-        }
-      })
+        },
+      }, isTip)
     }
 
-    // 更新当前版本
     this.currentVersion = newVersion
+  }
+
+  onUpdate(callback) {
+    if (typeof callback === 'function') {
+      this.listeners.add(callback)
+    }
   }
 
   start() {
     this.stop()
-    this.timer = createInterval(() => this.checkVersion(), this.options.interval)
+    this.timer = createInterval(() => this.checkVersion(), this.options.interval).start()
   }
 
   stop() {
@@ -82,16 +88,6 @@ export default class VersionWatcher {
       this.timer.stop()
       this.timer = null
     }
-  }
-
-  addListener(callback) {
-    if (typeof callback === 'function') {
-      this.listeners.add(callback)
-    }
-  }
-
-  removeListener(callback) {
-    this.listeners.delete(callback)
   }
 
   destroy() {

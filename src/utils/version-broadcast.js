@@ -1,4 +1,4 @@
-class VersionBroadcast {
+export class VersionBroadcast {
   constructor(channelName = 'version-sync') {
     if ('BroadcastChannel' in window) {
       this._mode = 'broadcastchannel'
@@ -13,16 +13,14 @@ class VersionBroadcast {
     }
   }
 
-  // 广播新版本
   broadcast(version) {
     if (this._mode === 'broadcastchannel') {
-      console.log('[VersionBroadcast] Broadcasting version:', version)
       this.channel.postMessage({ type: 'version-sync', version })
     } else if (this._mode === 'localstorage') {
       try {
         localStorage.setItem(this.channelName, JSON.stringify({
           timestamp: Date.now(),
-          version
+          version,
         }))
       } catch (error) {
         console.error('localStorage 广播版本失败:', error)
@@ -30,14 +28,14 @@ class VersionBroadcast {
     }
   }
 
-  // 监听版本更新
   onVersionSync(callback) {
     if (this._mode === 'broadcastchannel') {
-      this.channel.addEventListener('message', (event) => {
+      this.messageListener = (event) => {
         if (event.data && event.data.type === 'version-sync') {
           callback && callback(event.data.version)
         }
-      })
+      }
+      this.channel.addEventListener('message', this.messageListener)
     } else if (this._mode === 'localstorage') {
       this.storageListener = (event) => {
         this.handleStorageEvent(event, callback)
@@ -47,21 +45,24 @@ class VersionBroadcast {
   }
 
   handleStorageEvent(event, callback) {
-    if (event.key === this.channelName) {
-      try {
-        const data = JSON.parse(event.newValue)
-        if (data && data.version) {
-          callback && callback(data.version)
-        }
-      } catch (error) {
-        console.error('解析版本数据失败:', error)
+    if (event.key !== this.channelName) return
+
+    try {
+      const data = JSON.parse(event.newValue)
+      if (data && data.version) {
+        callback && callback(data.version)
       }
+    } catch (error) {
+      console.error('解析版本数据失败:', error)
     }
   }
 
-  // 清理监听器
   destroy() {
     if (this._mode === 'broadcastchannel') {
+      if (this.messageListener) {
+        this.channel.removeEventListener('message', this.messageListener)
+        this.messageListener = null
+      }
       this.channel.close()
     } else if (this._mode === 'localstorage' && this.storageListener) {
       window.removeEventListener('storage', this.storageListener)
@@ -70,4 +71,6 @@ class VersionBroadcast {
   }
 }
 
-export default new VersionBroadcast()
+export function createVersionBroadcast(channelName) {
+  return new VersionBroadcast(channelName)
+}

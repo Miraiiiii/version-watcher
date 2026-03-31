@@ -1,0 +1,17 @@
+{
+  "name": "version-watcher-vite-demo",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "bump": "node ./scripts/bump-version.mjs"
+  },
+  "dependencies": {
+    "version-watcher": "file:../..",
+    "vue": "^3.4.38"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.6.2",
+    "vite": "^4.5.5"
+  }
+}

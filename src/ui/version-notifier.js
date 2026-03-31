@@ -1,8 +1,9 @@
-import refreshBroadcast from '../utils/refresh-broadcast'
+import { createRefreshBroadcast } from '../utils/refresh-broadcast'
 import ConfirmDialog from './confirm-dialog'
 
 export default class VersionNotifier {
   constructor(options = {}) {
+    this.refreshBroadcast = createRefreshBroadcast()
     this.injectStyle(options)
   }
 
@@ -26,7 +27,7 @@ export default class VersionNotifier {
     const defaultContent = `
       <div class="vw-version-notifier__wrapper">
         <div class="vw-version-notifier__title">
-          新版上线啦！
+          新版本上线啦！
         </div>
         <div class="vw-version-notifier__content">
           <div class="vw-version-notifier__desc">
@@ -49,25 +50,22 @@ export default class VersionNotifier {
 
     confirm && confirm.addEventListener('click', async () => {
       try {
-        // 当允许刷新同源页签且当前页面同源时，通知其它标签页刷新
         if (event.refreshSameOrigin && event.tabCount > 1) {
           const dialog = new ConfirmDialog({
             content: '检测到有多个同源标签页，请选择更新方式',
-            newVersion: event.newVersion
+            newVersion: event.newVersion,
           })
 
           const action = await dialog.show()
           if (action === 'refreshAll') {
-            refreshBroadcast.broadcast()
+            this.refreshBroadcast.broadcast()
             window.location.reload()
           } else if (action === 'refreshCurrent') {
-            // 同步版本到其他页签
             if (event.onVersionSync) {
               event.onVersionSync(event.newVersion)
             }
             window.location.reload()
           } else if (action === 'later') {
-            // 同步版本到其他页签
             if (event.onVersionSync) {
               event.onVersionSync(event.newVersion)
             }
@@ -77,7 +75,6 @@ export default class VersionNotifier {
             }
           }
         } else {
-          // 只有一个标签页时直接刷新
           window.location.reload()
         }
       } catch (error) {
@@ -89,7 +86,6 @@ export default class VersionNotifier {
     })
 
     cancel && cancel.addEventListener('click', () => {
-      // 同步版本到其他页签
       if (event.onVersionSync) {
         event.onVersionSync(event.newVersion)
       }
@@ -106,12 +102,16 @@ export default class VersionNotifier {
     const style = document.createElement('style')
     const textContent = {
       '#vw-version-notifier': {
-        ...options.customStyle
-      }
+        ...options.customStyle,
+      },
     }
     style.textContent = Object.entries(textContent)
       .map(([selector, styles]) => `${selector} { ${styles} }`)
       .join('\n')
     document.head.appendChild(style)
+  }
+
+  destroy() {
+    this.refreshBroadcast.destroy()
   }
 }
