@@ -3,3 +3,6 @@
 /examples/*/node_modules
 /examples/*/dist
 /examples/*/.vite
+
+/tmp-utf8-check.txt
+/*.tgz
